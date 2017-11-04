@@ -1,0 +1,48 @@
+{
+  "_comment": "packer build -var 'aws_profile=lpm-dev' -var 'aws_region=us-east-1' windows.json",
+
+  "variables": {
+    "aws_profile": "{{env `AWS_PROFILE`}}",
+    "aws_region": "{{env `AWS_REGION`}}"
+  },
+  "builders": [{
+    "profile": "{{user `aws_profile`}}",
+    "region": "{{user `aws_region`}}",
+    "type": "amazon-ebs",
+    "source_ami_filter": {
+      "filters": {
+        "name": "Windows_Server-2012-R2_RTM-English-64Bit-Base*"
+      },
+      "owners": ["801119661308"],
+      "most_recent": true
+    },
+    "instance_type": "t2.medium",
+    "associate_public_ip_address":true,
+    "ami_name": "Windows_Server-2012-R2-awslogs-{{timestamp}}",
+    "ami_description": "Windows_Server-2012-R2 with cloudwatch logs",
+
+    "communicator": "winrm",
+    "winrm_username": "Administrator",
+    "winrm_use_ssl": true,
+    "winrm_insecure": true,
+
+    "user_data_file":"./ec2-userdata-winserver.ps1"
+  }],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "AWS.EC2.Windows.CloudWatch.json",
+      "destination": "C:\\Program Files\\Amazon\\SSM\\Plugins\\awsCloudWatch\\AWS.EC2.Windows.CloudWatch.json"
+    },
+    {
+      "type": "powershell",
+      "inline": [
+          "Restart-Service AmazonSSMAgent",
+          "# Enable the system password to be retrieved from the AWS Console after this AMI is built and used to launch code",
+          "$ec2config = [xml] (get-content 'C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\config.xml')",
+          "($ec2config.ec2configurationsettings.plugins.plugin | where {$_.name -eq \"Ec2SetPassword\"}).state = \"Enabled\"",
+          "$ec2config.save(\"C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\config.xml\")"
+      ]
+    }
+  ]
+}

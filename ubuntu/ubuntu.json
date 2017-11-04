@@ -1,0 +1,40 @@
+{
+  "_comment": "packer build -var 'aws_profile=lpm-dev' -var 'aws_region=us-east-1' ubuntu.json",
+
+  "variables": {
+    "aws_profile": "{{env `AWS_PROFILE`}}",
+    "aws_region": "{{env `AWS_REGION`}}"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "profile": "{{user `aws_profile`}}",
+    "region": "{{user `aws_region`}}",
+    "source_ami_filter": {
+      "filters": {
+      "virtualization-type": "hvm",
+      "name": "*ubuntu-xenial-16.04-amd64-server*",
+      "root-device-type": "ebs"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "instance_type": "t2.micro",
+    "ssh_username": "ubuntu",
+    "ami_name": "ubuntu-16.04-awslogs-{{timestamp}}",
+    "ami_description": "ubuntu-xenial-16.04-amd64-server with cloudwatch logs"
+  }],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "awslogs",
+      "destination": "awslogs"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "curl https://s3.amazonaws.com//aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O",
+        "sudo python3 awslogs-agent-setup.py -n -r {{user `aws_region`}} -c awslogs"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Packer-AwsLogs
 
-Packer cripts to build AMI's with syslogs going to Cloudwatch.
+Packer scripts to build AMI's with syslogs going to Cloudwatch.
 
 Generic Ubuntu and Windows examples provided.
 ```
